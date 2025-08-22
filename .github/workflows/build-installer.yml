@@ -1,0 +1,66 @@
+name: Build Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+      webapp_run_id:
+        description: 'Webapp workflow run ID'
+        required: true
+        type: string
+      fileprocessor_run_id:
+        description: 'File Processor workflow run ID'
+        required: true
+        type: string
+
+jobs:
+  create-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download webapp artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: desktop-release.yml
+          run_id: ${{ github.event.inputs.webapp_run_id }}
+          name: webapp-release-${{ github.event.inputs.version }}
+          repo: HealthSharer/AddOn-Repo
+          path: release-build/webapp
+          token: ${{ secrets.CROSS_REPO_TOKEN }}
+
+      - name: Download file processor artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: desktop-release.yml
+          run_id: ${{ github.event.inputs.fileprocessor_run_id }}
+          name: fileprocessor-release-${{ github.event.inputs.version }}
+          repo: HealthSharer/Core-Repo
+          path: release-build/fileprocessor
+          token: ${{ secrets.CROSS_REPO_TOKEN }}
+
+      - name: Install Inno Setup
+        run: |
+          $installerUrl = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe"
+          $installerPath = "innosetup-installer.exe"
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+          Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
+
+      - name: Build Installer
+        run: |
+          $isccPath = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $isccPath /DMyAppVersion=${{ github.event.inputs.version }} installer.iss
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: Release v${{ github.event.inputs.version }}
+          files: Output/HealthSharerSetup.exe
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
