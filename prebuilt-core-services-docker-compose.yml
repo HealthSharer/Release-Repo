@@ -1,0 +1,86 @@
+services:
+  identity:
+    image: primeng16/healthsharer:identity-service
+    container_name: identity_service
+    ports:
+      - "5036:5036"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=message_queue
+      - MessageQueue_Username=guest
+      - MessageQueue_Password=guest
+      - Vault_Token=Your_vault_token_here
+    networks:
+      - healthsharer
+  permission:
+    image: primeng16/healthsharer:permission-service
+    container_name: permission_service
+    ports:
+      - "5067:5067"
+      - "7291:7291"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=message_queue
+      - MessageQueue_Username=guest
+      - MessageQueue_Password=guest
+    networks:
+      - healthsharer
+  file:
+    image: primeng16/healthsharer:file-service
+    container_name: file_service
+    ports:
+      - "5198:5198"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=message_queue
+      - MessageQueue_Username=guest
+      - MessageQueue_Password=guest
+    networks:
+      - healthsharer
+  fileprocessor:
+    image: primeng16/healthsharer:file-process-service
+    container_name: file_process_service
+    ports:
+      - "5126:5126"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=message_queue
+      - MessageQueue_Username=guest
+      - MessageQueue_Password=guest
+    networks:
+      - healthsharer
+  notification:
+    image: primeng16/healthsharer:notification-service
+    container_name: notification_service
+    ports:
+      - "5282:5282"
+    volumes:
+      - "./Logs:/app/Logs"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=message_queue
+      - MessageQueue_Username=guest
+      - MessageQueue_Password=guest
+    networks:
+      - healthsharer
+  gateway:
+    image: primeng16/healthsharer:gateway
+    container_name: gateway_service
+    ports:
+      - "5127:5127"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - healthsharer
+  webapp:
+    image: primeng16/healthsharer:webapp
+    container_name: webapp_service
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - healthsharer
+networks:
+  healthsharer:
+    external: true    
