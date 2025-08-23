@@ -63,12 +63,19 @@ jobs:
           $isccPath = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           & $isccPath /DMyAppVersion=${{ github.event.inputs.version }} installer.iss
 
+      - name: List Files (Debug)
+        run: |
+          Write-Host "Current directory:"
+          Get-Location
+          Write-Host "`nListing files in current directory:"
+          Get-ChildItem -Recurse -File | Where-Object { $_.Name -like "*Setup*.exe" }
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.event.inputs.version }}
           name: Release v${{ github.event.inputs.version }}
-          files: Release-Repo\Release-Repo\HealthSharerSetup.exe
+          files: HealthSharerSetup.exe
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
