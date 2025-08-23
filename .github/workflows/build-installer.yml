@@ -18,20 +18,38 @@ jobs:
       - name: Download webapp artifact
         uses: dawidd6/action-download-artifact@v2
         with:
+          github_token: ${{ secrets.INSTALLER_REPO_TOKEN }}
           workflow: desktop-release.yml
           name: webapp-release-${{ github.event.inputs.version }}
-          repo: HealthSharer/AddOn-Repo
           path: release-build/webapp
-          token: ${{ secrets.CROSS_REPO_TOKEN }}
+          repo: HealthSharer/AddOn-Repo
 
       - name: Download file processor artifact
         uses: dawidd6/action-download-artifact@v2
         with:
+          github_token: ${{ secrets.INSTALLER_REPO_TOKEN }}
           workflow: desktop-release.yml
           name: fileprocessor-release-${{ github.event.inputs.version }}
-          repo: HealthSharer/Core-Repo
           path: release-build/fileprocessor
-          token: ${{ secrets.CROSS_REPO_TOKEN }}
+          repo: HealthSharer/Core-Repo
+
+      - name: Download IPFS
+        run: |
+          # Create IPFS directory
+          New-Item -Path "release-build/ipfsnode" -ItemType Directory -Force
+
+          # Download IPFS for Windows
+          $ipfsUrl = "https://dist.ipfs.tech/kubo/v0.24.0/kubo_v0.24.0_windows-amd64.zip"
+          $ipfsPath = "release-build/ipfsnode/ipfs.zip"
+          Invoke-WebRequest -Uri $ipfsUrl -OutFile $ipfsPath
+
+          # Extract IPFS
+          Expand-Archive -Path $ipfsPath -DestinationPath "release-build/ipfsnode" -Force
+          Remove-Item $ipfsPath
+          
+          # Move files from the nested directory
+          Move-Item -Path "release-build/ipfsnode/kubo/*" -Destination "release-build/ipfsnode/" -Force
+          Remove-Item -Path "release-build/ipfsnode/kubo" -Recurse -Force
 
       - name: Install Inno Setup
         run: |
