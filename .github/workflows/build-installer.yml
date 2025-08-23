@@ -7,14 +7,6 @@ on:
         description: 'Release version (e.g., 1.0.0)'
         required: true
         type: string
-      webapp_run_id:
-        description: 'Webapp workflow run ID'
-        required: true
-        type: string
-      fileprocessor_run_id:
-        description: 'File Processor workflow run ID'
-        required: true
-        type: string
 
 jobs:
   create-installer:
@@ -27,7 +19,6 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: desktop-release.yml
-          run_id: ${{ github.event.inputs.webapp_run_id }}
           name: webapp-release-${{ github.event.inputs.version }}
           repo: HealthSharer/AddOn-Repo
           path: release-build/webapp
@@ -37,7 +28,6 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: desktop-release.yml
-          run_id: ${{ github.event.inputs.fileprocessor_run_id }}
           name: fileprocessor-release-${{ github.event.inputs.version }}
           repo: HealthSharer/Core-Repo
           path: release-build/fileprocessor
