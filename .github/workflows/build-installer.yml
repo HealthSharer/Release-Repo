@@ -20,7 +20,7 @@ jobs:
         with:
           github_token: ${{ secrets.INSTALLER_REPO_TOKEN }}
           workflow: desktop-release.yml
-          name: webapp-release-${{ github.event.inputs.version }}
+          name: webapp-build-${{ github.event.inputs.version }}
           path: release-build/webapp
           repo: HealthSharer/AddOn-Repo
 
@@ -29,7 +29,7 @@ jobs:
         with:
           github_token: ${{ secrets.INSTALLER_REPO_TOKEN }}
           workflow: desktop-release.yml
-          name: fileprocessor-release-${{ github.event.inputs.version }}
+          name: fileprocessor-build-${{ github.event.inputs.version }}
           path: release-build/fileprocessor
           repo: HealthSharer/Core-Repo
 
