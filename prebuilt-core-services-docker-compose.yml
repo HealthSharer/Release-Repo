@@ -1,9 +1,57 @@
+version: '3.8'
+
 services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=your-email@example.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Dashboard port
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - healthsharer
+    labels:
+      - "traefik.enable=true"
+      # Dashboard configuration
+      - "traefik.http.routers.dashboard.rule=Host(`healthsharer.live`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      # Basic auth for dashboard
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$your-hashed-password"
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 --cleanup
+    restart: unless-stopped
+    networks:
+      - healthsharer
+
   identity:
     image: primeng16/healthsharer:identity-service
     container_name: identity_service
-    ports:
-      - "5036:5036"
+    expose:
+      - "5036"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MessageQueue_HostName=message_queue
@@ -12,12 +60,22 @@ services:
       - Vault_Token=Your_vault_token_here
     networks:
       - healthsharer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.identity.rule=PathPrefix(`/identity`)"
+      - "traefik.http.services.identity.loadbalancer.server.port=5036"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5036/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
   permission:
     image: primeng16/healthsharer:permission-service
     container_name: permission_service
-    ports:
-      - "5067:5067"
-      - "7291:7291"
+    expose:
+      - "5067"
+      - "7291"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MessageQueue_HostName=message_queue
@@ -25,11 +83,21 @@ services:
       - MessageQueue_Password=guest
     networks:
       - healthsharer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.permission.rule=PathPrefix(`/permission`)"
+      - "traefik.http.services.permission.loadbalancer.server.port=5067"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5067/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
   file:
     image: primeng16/healthsharer:file-service
     container_name: file_service
-    ports:
-      - "5198:5198"
+    expose:
+      - "5198"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MessageQueue_HostName=message_queue
@@ -37,11 +105,21 @@ services:
       - MessageQueue_Password=guest
     networks:
       - healthsharer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.file.rule=PathPrefix(`/file`)"
+      - "traefik.http.services.file.loadbalancer.server.port=5198"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5198/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
   fileprocessor:
     image: primeng16/healthsharer:file-process-service
     container_name: file_process_service
-    ports:
-      - "5126:5126"
+    expose:
+      - "5126"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MessageQueue_HostName=message_queue
@@ -49,11 +127,21 @@ services:
       - MessageQueue_Password=guest
     networks:
       - healthsharer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fileprocessor.rule=PathPrefix(`/fileprocessor`)"
+      - "traefik.http.services.fileprocessor.loadbalancer.server.port=5126"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5126/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
   notification:
     image: primeng16/healthsharer:notification-service
     container_name: notification_service
-    ports:
-      - "5282:5282"
+    expose:
+      - "5282"
     volumes:
       - "./Logs:/app/Logs"
     environment:
@@ -63,24 +151,59 @@ services:
       - MessageQueue_Password=guest
     networks:
       - healthsharer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notification.rule=PathPrefix(`/notification`)"
+      - "traefik.http.services.notification.loadbalancer.server.port=5282"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5282/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   gateway:
     image: primeng16/healthsharer:gateway
     container_name: gateway_service
-    ports:
-      - "5127:5127"
+    expose:
+      - "5127"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
     networks:
       - healthsharer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gateway.rule=PathPrefix(`/api`)"
+      - "traefik.http.services.gateway.loadbalancer.server.port=5127"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5127/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   webapp:
     image: primeng16/healthsharer:webapp
     container_name: webapp_service
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
     networks:
       - healthsharer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapp.rule=Host(`healthsharer.live`)"
+      - "traefik.http.services.webapp.loadbalancer.server.port=3000"
+      - "traefik.http.routers.webapp.entrypoints=websecure"
+      - "traefik.http.routers.webapp.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.webapp.priority=1"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 networks:
   healthsharer:
     external: true    
