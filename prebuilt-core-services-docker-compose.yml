@@ -2,9 +2,10 @@ version: '3.8'
 
 services:
   traefik:
-    image: traefik:v2.10
+    image: traefik:v3.5.1
     container_name: traefik
     command:
+      - "--api.insecure=true"      # Allow insecure access to dashboard
       - "--api.dashboard=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
@@ -16,27 +17,30 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.letsencrypt.acme.email=your-email@example.com"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=DEBUG"
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Dashboard port
+      - "3080:8080"  # Dashboard port
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
-    networks:
-      - healthsharer
     labels:
       - "traefik.enable=true"
+      # Global CORS middleware
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST"
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolalloworiginlist=https://healthsharer.live"
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolmaxage=100"
+      - "traefik.http.middlewares.cors-config.headers.addvaryheader=true"
       # Dashboard configuration
-      - "traefik.http.routers.dashboard.rule=Host(`healthsharer.live`)"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.healthsharer.live`)"
       - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.middlewares=auth"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
-      # Basic auth for dashboard
-      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$your-hashed-password"
-    restart: unless-stopped
-
+      - "traefik.http.routers.dashboard.priority=30"
+    networks:
+      - healthsharer
   watchtower:
     image: containrrr/watchtower:latest
     container_name: watchtower
@@ -62,14 +66,20 @@ services:
       - healthsharer
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.identity.rule=PathPrefix(`/identity`)"
-      - "traefik.http.services.identity.loadbalancer.server.port=5036"
+      # API endpoints
+      #- "traefik.http.routers.identity-api.rule=Host(`api.healthsharer.live`) && PathPrefix(`/users`)"
+      #- "traefik.http.routers.identity-api.entrypoints=websecure"
+      #- "traefik.http.routers.identity-api.tls.certresolver=letsencrypt"
+      #- "traefik.http.routers.identity-api.middlewares=cors-config"
+      #- "traefik.http.routers.identity-api.service=identity-api"
+      #- "traefik.http.services.identity-api.loadbalancer.server.port=5036"
+      # OAuth endpoints on auth subdomain
+      - "traefik.http.routers.identity-oauth.rule=Host(`auth.healthsharer.live`)"
+      - "traefik.http.routers.identity-oauth.entrypoints=websecure"
+      - "traefik.http.routers.identity-oauth.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.identity-oauth.middlewares=cors-config"
+      - "traefik.http.routers.identity-oauth.service=identity-oauth"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5036/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
   permission:
     image: primeng16/healthsharer:permission-service
     container_name: permission_service
@@ -84,15 +94,13 @@ services:
     networks:
       - healthsharer
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.permission.rule=PathPrefix(`/permission`)"
+      - "traefik.enable=false"
+      - "traefik.http.routers.permission.rule=Host(`api.healthsharer.live`) && PathPrefix(`/permission`)"
+      - "traefik.http.routers.permission.entrypoints=websecure"
+      - "traefik.http.routers.permission.tls.certresolver=letsencrypt"
       - "traefik.http.services.permission.loadbalancer.server.port=5067"
+      - "traefik.http.routers.permission.middlewares=cors-config"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5067/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
   file:
     image: primeng16/healthsharer:file-service
     container_name: file_service
@@ -106,15 +114,10 @@ services:
     networks:
       - healthsharer
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.file.rule=PathPrefix(`/file`)"
+      - "traefik.enable=false"
+      - "traefik.http.routers.file.rule=Host(`api.healthsharer.live`) && PathPrefix(`/file`)"
       - "traefik.http.services.file.loadbalancer.server.port=5198"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5198/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - "traefik.http.routers.file.middlewares=cors-config"
   fileprocessor:
     image: primeng16/healthsharer:file-process-service
     container_name: file_process_service
@@ -128,15 +131,11 @@ services:
     networks:
       - healthsharer
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.fileprocessor.rule=PathPrefix(`/fileprocessor`)"
+      - "traefik.enable=false"
+      - "traefik.http.routers.fileprocessor.rule=Host(`api.healthsharer.live`) && PathPrefix(`/fileprocessor`)"
       - "traefik.http.services.fileprocessor.loadbalancer.server.port=5126"
+      - "traefik.http.routers.fileprocessor.middlewares=cors-config"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5126/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
   notification:
     image: primeng16/healthsharer:notification-service
     container_name: notification_service
@@ -152,16 +151,11 @@ services:
     networks:
       - healthsharer
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.notification.rule=PathPrefix(`/notification`)"
+      - "traefik.enable=false"
+      - "traefik.http.routers.notification.rule=Host(`api.healthsharer.live`) && PathPrefix(`/notification`)"
       - "traefik.http.services.notification.loadbalancer.server.port=5282"
+      - "traefik.http.routers.notification.middlewares=cors-config"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5282/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   gateway:
     image: primeng16/healthsharer:gateway
     container_name: gateway_service
@@ -173,19 +167,17 @@ services:
       - healthsharer
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.gateway.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.gateway.rule=Host(`api.healthsharer.live`)"
+      - "traefik.http.routers.gateway.entrypoints=websecure"
+      - "traefik.http.routers.gateway.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.gateway.middlewares=cors-config"
       - "traefik.http.services.gateway.loadbalancer.server.port=5127"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5127/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   webapp:
     image: primeng16/healthsharer:webapp
     container_name: webapp_service
-    expose:
+    ports:
       - "3000"
     environment:
       - NODE_ENV=production
@@ -197,13 +189,8 @@ services:
       - "traefik.http.services.webapp.loadbalancer.server.port=3000"
       - "traefik.http.routers.webapp.entrypoints=websecure"
       - "traefik.http.routers.webapp.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.webapp.priority=1"
+      - "traefik.http.routers.webapp.priority=100"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 networks:
   healthsharer:
-    external: true    
+    external: true
