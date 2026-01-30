@@ -1,0 +1,428 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: kms_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis_data:/data
+    networks:
+      - healthsharer
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: database
+    user: root
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+      ACCEPT_EULA: Y
+    ports:
+      - "1433:1433"
+    volumes:
+      - ./database/data:/var/opt/mssql/data
+      - ./database/log:/var/opt/mssql/log
+      - ./database/secrets:/var/opt/mssql/secrets
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P Password123! -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - healthsharer
+  vault:
+    image: hashicorp/vault
+    container_name: kms_vault
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_TOKEN}
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    volumes:
+      - ./vault/data:/vault/data
+      - ./vault/config:/vault/config
+      - ./vault/policies:/vault/policies
+    command:
+      - "server"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "vault status || exit 0"]  # Modified to not fail if Vault is sealed
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - healthsharer
+  vault-init:
+    image: hashicorp/vault
+    depends_on:
+      vault:
+        condition: service_healthy
+    environment:
+      VAULT_ADDR: http://vault:8200
+    volumes:
+      - ./vault/data:/vault/data
+      - ./vault/policies:/vault/policies
+    command: >
+      sh -c "
+      set -e;
+      apk add --no-cache jq;
+      if ! vault status | grep -q 'Initialized.*true'; then
+        vault operator init -format=json > /vault/data/init.json;
+      fi;
+      for key in $(jq -r '.unseal_keys_b64[]' /vault/data/init.json); do
+        vault operator unseal $$key;
+      done;
+      export VAULT_TOKEN=$(jq -r '.root_token' /vault/data/init.json);
+      if ! vault secrets list | grep -q 'healthsharer/'; then
+        vault secrets enable -path=healthsharer -version 2 kv-v2;
+        vault kv put healthsharer/secret initial=initial_key
+      fi;
+      for policy in /vault/policies/*.hcl; do
+        if [ -f $$policy ]; then
+          policy_name=$(basename $$policy .hcl);
+          vault policy write $$policy_name $$policy;
+        fi;
+      done;
+      "
+    networks:
+      - healthsharer
+  rabbitmq:
+    image: rabbitmq:3.13.7-management
+    container_name: message_queue
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ./rabbitmq/data/:/var/lib/rabbitmq/
+      - ./rabbitmq/log/:/var/log/rabbitmq/
+    labels:
+      - "traefik.enable=false"
+      - "traefik.http.routers.rabbitmq.rule=Host(`messagequeue.healthsharer.live`)"
+      - "traefik.http.routers.rabbitmq.entrypoints=websecure"
+      - "traefik.http.routers.rabbitmq.tls.certresolver=letsencrypt"
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=5672"
+      - "traefik.http.routers.rabbitmq.middlewares=cors-config"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - healthsharer
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: ipfs_service     
+    ports:
+      - 4001:4001
+      - 4001:4001/udp
+      - 8080:8080
+      - 5001:5001
+    volumes:
+      - "./ipfs/staging:/export"
+      - "./ipfs/data:/data/ipfs"
+    networks:
+      - healthsharer
+  traefik:
+    image: traefik:v3.5.1
+    container_name: traefik
+    command:
+      - "--api.insecure=true"      # Allow insecure access to dashboard
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=your-email@example.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=DEBUG"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3080:8080"  # Dashboard port
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    labels:
+      - "traefik.enable=true"
+      # Global CORS middleware
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST"
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolalloworiginlist=https://healthsharer.live"
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolmaxage=100"
+      - "traefik.http.middlewares.cors-config.headers.addvaryheader=true"
+      # Dashboard configuration
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.healthsharer.live`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.priority=30"
+    networks:
+      - healthsharer
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 --cleanup
+    restart: unless-stopped
+    networks:
+      - healthsharer
+
+  identity:
+    image: primeng16/healthsharer:identity-service
+    container_name: identity_service
+    expose:
+      - "5036"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+    networks:
+      - healthsharer
+    labels:
+      - "traefik.enable=true"
+      # API endpoints
+      #- "traefik.http.routers.identity-api.rule=Host(`api.healthsharer.live`) && PathPrefix(`/users`)"
+      #- "traefik.http.routers.identity-api.entrypoints=websecure"
+      #- "traefik.http.routers.identity-api.tls.certresolver=letsencrypt"
+      #- "traefik.http.routers.identity-api.middlewares=cors-config"
+      #- "traefik.http.routers.identity-api.service=identity-api"
+      #- "traefik.http.services.identity-api.loadbalancer.server.port=5036"
+      # OAuth endpoints on auth subdomain
+      - "traefik.http.routers.identity-oauth.rule=Host(`auth.healthsharer.live`)"
+      - "traefik.http.routers.identity-oauth.entrypoints=websecure"
+      - "traefik.http.routers.identity-oauth.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.identity-oauth.middlewares=cors-config"
+      - "traefik.http.routers.identity-oauth.service=identity-oauth"
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      vault-init:
+        condition: service_started
+      ipfs:
+        condition: service_started
+  permission:
+    image: primeng16/healthsharer:permission-service
+    container_name: permission_service
+    expose:
+      - "5067"
+      - "7291"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+    networks:
+      - healthsharer
+    labels:
+      - "traefik.enable=false"
+      - "traefik.http.routers.permission.rule=Host(`api.healthsharer.live`) && PathPrefix(`/permission`)"
+      - "traefik.http.routers.permission.entrypoints=websecure"
+      - "traefik.http.routers.permission.tls.certresolver=letsencrypt"
+      - "traefik.http.services.permission.loadbalancer.server.port=5067"
+      - "traefik.http.routers.permission.middlewares=cors-config"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      vault-init:
+        condition: service_started
+      ipfs:
+        condition: service_started
+    restart: unless-stopped
+  file:
+    image: primeng16/healthsharer:file-service
+    container_name: file_service
+    expose:
+      - "5198"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+    networks:
+      - healthsharer
+    labels:
+      - "traefik.enable=false"
+      - "traefik.http.routers.file.rule=Host(`api.healthsharer.live`) && PathPrefix(`/file`)"
+      - "traefik.http.services.file.loadbalancer.server.port=5198"
+      - "traefik.http.routers.file.middlewares=cors-config"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      vault-init:
+        condition: service_started
+      ipfs:
+        condition: service_started
+  fileprocessor:
+    image: primeng16/healthsharer:file-process-service
+    container_name: file_process_service
+    expose:
+      - "5126"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+    networks:
+      - healthsharer
+    labels:
+      - "traefik.enable=false"
+      - "traefik.http.routers.fileprocessor.rule=Host(`api.healthsharer.live`) && PathPrefix(`/fileprocessor`)"
+      - "traefik.http.services.fileprocessor.loadbalancer.server.port=5126"
+      - "traefik.http.routers.fileprocessor.middlewares=cors-config"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      vault-init:
+        condition: service_started
+      ipfs:
+        condition: service_started
+    restart: unless-stopped
+  notification:
+    image: primeng16/healthsharer:notification-service
+    container_name: notification_service
+    expose:
+      - "5282"
+    volumes:
+      - "./Logs:/app/Logs"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+    networks:
+      - healthsharer
+    labels:
+      - "traefik.enable=false"
+      - "traefik.http.routers.notification.rule=Host(`api.healthsharer.live`) && (PathPrefix(`/notification`) || PathPrefix(`/auditlog`))"
+      - "traefik.http.services.notification.loadbalancer.server.port=5282"
+      - "traefik.http.routers.notification.middlewares=cors-config"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      vault-init:
+        condition: service_started
+      ipfs:
+        condition: service_started
+    restart: unless-stopped
+  gateway:
+    image: primeng16/healthsharer:gateway
+    container_name: gateway_service
+    expose:
+      - "5127"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - healthsharer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gateway.rule=Host(`api.healthsharer.live`)"
+      - "traefik.http.routers.gateway.entrypoints=websecure"
+      - "traefik.http.routers.gateway.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.gateway.middlewares=cors-config"
+      - "traefik.http.services.gateway.loadbalancer.server.port=5127"
+    restart: unless-stopped
+  collaboration:
+    image: primeng16/healthsharer:collaboration-service
+    container_name: collaboration_service
+    ports:
+      - "5070:5070"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+    labels:
+      - "traefik.enable=false"
+      - "traefik.http.routers.collaboration.rule=Host(`api.healthsharer.live`) && PathPrefix(`/collaboration`)"
+      - "traefik.http.services.collaboration.loadbalancer.server.port=5070"
+      - "traefik.http.routers.collaboration.middlewares=cors-config"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      vault-init:
+        condition: service_started
+      ipfs:
+        condition: service_started
+    networks:
+      - healthsharer
+  kms:
+    image: primeng16/healthsharer:kms-service
+    container_name: kms_service
+    ports:
+      - "5088:5088"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+      - Vault_Token=${VAULT_TOKEN}
+    labels:
+      - "traefik.enable=false"
+      - "traefik.http.routers.kms.rule=Host(`api.healthsharer.live`) && PathPrefix(`/kms`)"
+      - "traefik.http.services.kms.loadbalancer.server.port=5088"
+      - "traefik.http.routers.kms.middlewares=cors-config"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      vault-init:
+        condition: service_started
+      ipfs:
+        condition: service_started
+    networks:
+      - healthsharer
+  webapp:
+    image: primeng16/healthsharer:webapp
+    container_name: webapp_service
+    ports:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - healthsharer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapp.rule=Host(`healthsharer.live`)"
+      - "traefik.http.services.webapp.loadbalancer.server.port=3000"
+      - "traefik.http.routers.webapp.entrypoints=websecure"
+      - "traefik.http.routers.webapp.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.webapp.priority=100"
+    restart: unless-stopped
+networks:
+  healthsharer:
+    external: true
