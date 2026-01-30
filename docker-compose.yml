@@ -24,7 +24,7 @@ services:
       - ./database/log:/var/opt/mssql/log
       - ./database/secrets:/var/opt/mssql/secrets
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P Password123! -Q 'SELECT 1'"]
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$SA_PASSWORD\" -Q 'SELECT 1'"]
       interval: 10s
       timeout: 5s
       retries: 5
