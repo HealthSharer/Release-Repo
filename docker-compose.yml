@@ -43,7 +43,7 @@ services:
       - ./vault/config:/vault/config
       - ./vault/policies:/vault/policies
     command:
-      - "server"
+      - "vault server -dev -dev-listen-address=0.0.0.0:8200"
     healthcheck:
       test: ["CMD", "sh", "-c", "vault status || exit 0"]  # Modified to not fail if Vault is sealed
       interval: 10s
