@@ -90,9 +90,9 @@ services:
   rabbitmq:
     image: rabbitmq:3.13.7-management
     container_name: message_queue
-    ports:
-      - 5672:5672
-      - 15672:15672
+    expose:
+      - 5672
+      - 15672
     volumes:
       - ./rabbitmq/data/:/var/lib/rabbitmq/
       - ./rabbitmq/log/:/var/log/rabbitmq/
