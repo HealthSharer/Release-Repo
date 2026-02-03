@@ -124,7 +124,7 @@ services:
     networks:
       - healthsharer
   traefik:
-    image: traefik:v3.5.1
+    image: traefik:v3.6.7
     container_name: traefik
     command:
       - "--api.insecure=true"      # Allow insecure access to dashboard
