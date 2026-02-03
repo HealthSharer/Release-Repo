@@ -378,7 +378,7 @@ services:
     networks:
       - healthsharer
   kms:
-    image: primeng16/healthsharer:kms-service
+    image: primeng16/healthsharer:key-management-service
     container_name: kms_service
     ports:
       - "5088:5088"
