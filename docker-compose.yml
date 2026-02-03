@@ -97,7 +97,7 @@ services:
       - ./rabbitmq/data/:/var/lib/rabbitmq/
       - ./rabbitmq/log/:/var/log/rabbitmq/
     labels:
-      - "traefik.enable=false"
+      - "traefik.enable=true"
       - "traefik.http.routers.rabbitmq.rule=Host(`messagequeue.healthsharer.live`)"
       - "traefik.http.routers.rabbitmq.entrypoints=websecure"
       - "traefik.http.routers.rabbitmq.tls.certresolver=letsencrypt"
@@ -195,11 +195,10 @@ services:
       #- "traefik.http.routers.identity-api.service=identity-api"
       #- "traefik.http.services.identity-api.loadbalancer.server.port=5036"
       # OAuth endpoints on auth subdomain
-      - "traefik.http.routers.identity-oauth.rule=Host(`auth.healthsharer.live`)"
-      - "traefik.http.routers.identity-oauth.entrypoints=websecure"
-      - "traefik.http.routers.identity-oauth.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.identity-oauth.middlewares=cors-config"
-      - "traefik.http.routers.identity-oauth.service=identity-oauth"
+      - "traefik.http.routers.identity.rule=Host(`auth.healthsharer.live`)"
+      - "traefik.http.routers.identity.entrypoints=websecure"
+      - "traefik.http.routers.identity.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.identity.middlewares=cors-config"
     restart: unless-stopped
     depends_on:
       rabbitmq:
