@@ -101,8 +101,13 @@ services:
       - "traefik.http.routers.rabbitmq.rule=Host(`messagequeue.healthsharer.live`)"
       - "traefik.http.routers.rabbitmq.entrypoints=websecure"
       - "traefik.http.routers.rabbitmq.tls.certresolver=letsencrypt"
-      - "traefik.http.services.rabbitmq.loadbalancer.server.port=5672"
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
       - "traefik.http.routers.rabbitmq.middlewares=cors-config"
+      # TCP router for AMQP
+      - "traefik.tcp.routers.rabbit-amqp.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.rabbit-amqp.entrypoints=amqp"
+      - "traefik.tcp.routers.rabbit-amqp.service=rabbit-amqp-svc"
+      - "traefik.tcp.services.rabbit-amqp-svc.loadbalancer.server.port=5672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -133,6 +138,7 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.amqp.address=:5672"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
       - "--entrypoints.websecure.http.sanitizepath=false"
