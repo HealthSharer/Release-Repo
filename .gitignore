@@ -1,1 +1,6 @@
-release-build
+rabbitmq/data
+ipfs/
+vault/data
+database/
+redis_data/
+.env
