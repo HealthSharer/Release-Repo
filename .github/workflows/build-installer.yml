@@ -65,14 +65,7 @@ jobs:
         run: |
           $isccPath = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           & $isccPath installer.iss
-
-      - name: List Files (Debug)
-        run: |
-          Write-Host "Current directory:"
-          Get-Location
-          Write-Host "`nListing files in current directory:"
-          Get-ChildItem -Recurse -File | Where-Object { $_.Name -like "*Setup*.exe" }
-
+          
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
