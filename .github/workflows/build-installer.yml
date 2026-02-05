@@ -1,3 +1,4 @@
+
 name: Build Installer
 
 on:
@@ -9,8 +10,8 @@ on:
         type: string
 
 permissions:
-  contents: write    # Required for creating releases
-  actions: read     # Required for artifacts
+  contents: write
+  actions: read
 
 jobs:
   create-installer:
@@ -19,39 +20,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download webapp artifact
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          github_token: ${{ secrets.INSTALLER_REPO_TOKEN }}
-          workflow: desktop-release.yml
-          name: webapp-build-${{ github.event.inputs.version }}
-          path: release-build/webapp
-          repo: HealthSharer/AddOn-Repo
+      - name: Download latest webapp release zip
+        run: |
+          $webappUrl = "https://github.com/HealthSharer/AddOn-Repo/releases/latest/download/webapp.zip"
+          $webappZip = "release-build/webapp.zip"
+          Invoke-WebRequest -Uri $webappUrl -OutFile $webappZip
 
-      - name: Download file processor artifact
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          github_token: ${{ secrets.INSTALLER_REPO_TOKEN }}
-          workflow: desktop-release.yml
-          name: fileprocessor-build-${{ github.event.inputs.version }}
-          path: release-build/fileprocessor
-          repo: HealthSharer/Core-Repo
+      - name: Extract webapp zip
+        run: |
+          Expand-Archive -Path "release-build/webapp.zip" -DestinationPath "release-build/webapp" -Force
+          Remove-Item "release-build/webapp.zip" -Force
+
+      - name: Download latest fileprocessor release zip
+        run: |
+          $fpUrl = "https://github.com/HealthSharer/Core-Repo/releases/latest/download/fileprocessor.zip"
+          $fpZip = "release-build/fileprocessor.zip"
+          Invoke-WebRequest -Uri $fpUrl -OutFile $fpZip
+
+      - name: Extract fileprocessor zip
+        run: |
+          Expand-Archive -Path "release-build/fileprocessor.zip" -DestinationPath "release-build/fileprocessor" -Force
+          Remove-Item "release-build/fileprocessor.zip" -Force
 
       - name: Download IPFS
         run: |
-          # Create IPFS directory
           New-Item -Path "release-build/ipfsnode" -ItemType Directory -Force
-
-          # Download IPFS for Windows
           $ipfsUrl = "https://dist.ipfs.tech/kubo/v0.24.0/kubo_v0.24.0_windows-amd64.zip"
           $ipfsPath = "release-build/ipfsnode/ipfs.zip"
           Invoke-WebRequest -Uri $ipfsUrl -OutFile $ipfsPath
-
-          # Extract IPFS
           Expand-Archive -Path $ipfsPath -DestinationPath "release-build/ipfsnode" -Force
           Remove-Item $ipfsPath
-          
-          # Move files from the nested directory
           Move-Item -Path "release-build/ipfsnode/kubo/*" -Destination "release-build/ipfsnode/" -Force
           Remove-Item -Path "release-build/ipfsnode/kubo" -Recurse -Force
 
@@ -65,7 +63,7 @@ jobs:
       - name: Build Installer
         run: |
           $isccPath = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          & $isccPath /DMyAppVersion=${{ github.event.inputs.version }} installer.iss
+          & $isccPath installer.iss
 
       - name: List Files (Debug)
         run: |

@@ -1,20 +1,34 @@
+
 [Setup]
 AppName=HealthSharer
 AppVersion=1.0
-DefaultDirName={pf}\HealthSharer
+DefaultDirName={code:GetInstallDir}
 DefaultGroupName=HealthSharer
 OutputDir=.
 OutputBaseFilename=HealthSharerSetup
 Compression=lzma
 SolidCompression=yes
 
+[Code]
+// Allow user to choose install directory
+function GetInstallDir(Default: String): String;
+begin
+	Result := ExpandConstant('{pf}\HealthSharer');
+end;
+
+
+
 [Files]
 ; Main Electron app
-Source: "release-build\webapp\*"; DestDir: "{app}\webapp"; Flags: ignoreversion recursesubdirs; Excludes: "node_modules\*"
+Source: "release-build\webapp\*"; DestDir: "{app}\webapp"; Flags: ignoreversion recursesubdirs; Excludes: "node_modules\* .env* *.map"
 ; File Processor
-Source: "release-build\fileprocessor\*"; DestDir: "{app}\fileprocessor"; Flags: ignoreversion recursesubdirs
+Source: "release-build\fileprocessor\*"; DestDir: "{app}\fileprocessor"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb *.log"
 ; IPFS
 Source: "release-build\ipfsnode\ipfs.exe"; DestDir: "{app}\ipfsnode"; Flags: ignoreversion
+; Batch file to run all apps at once
+Source: "run-all.bat"; DestDir: "{app}"; Flags: ignoreversion
+
+
 
 [Run]
 ; Clear existing IPFS bootstrap
@@ -23,17 +37,19 @@ Filename: "{app}\ipfsnode\ipfs.exe"; Parameters: "bootstrap rm --all"; Flags: ru
 ; Add new IPFS bootstrap address
 Filename: "{app}\ipfsnode\ipfs.exe"; Parameters: "bootstrap add /ip4/82.24.183.42/tcp/4001/p2p/12D3KooWC1kQN58S9LM8o4GjVZbs3FTZpR4Vt7tf9P6tyCuAyzSB"; Flags: runhidden
 
+
+
 [Icons]
-Name: "{group}\HealthSharer"; Filename: "{app}\HealthSharer.exe"
-Name: "{group}\File Processor"; Filename: "{app}\file-processor.exe"
-Name: "{group}\IPFS"; Filename: "{app}\ipfs.exe"
+Name: "{group}\HealthSharer"; Filename: "{app}\webapp\HealthSharer.exe"
+Name: "{group}\File Processor"; Filename: "{app}\fileprocessor\FileProcessor.exe"
+Name: "{group}\IPFS"; Filename: "{app}\ipfsnode\ipfs.exe"
+Name: "{group}\Run All"; Filename: "{app}\run-all.bat"; WorkingDir: "{app}"
+
+
 
 [Registry]
-; Set ASPNETCORE_ENVIRONMENT
-Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "ASPNETCORE_ENVIRONMENT"; ValueData: "Development"; Flags: preservestringtype
-
-; Set MessageQueue_HostName
-Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "MessageQueue_HostName"; ValueData: "localhost"; Flags: preservestringtype
+; Set ASPNETCORE_ENVIRONMENT to Desktop
+Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "ASPNETCORE_ENVIRONMENT"; ValueData: "Desktop"; Flags: preservestringtype
 
 ; Set MessageQueue_Username
 Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "MessageQueue_Username"; ValueData: "guest"; Flags: preservestringtype
@@ -41,8 +57,15 @@ Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "MessageQueue_U
 ; Set MessageQueue_Password
 Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "MessageQueue_Password"; ValueData: "guest"; Flags: preservestringtype
 
-[Run]
-; Uncomment these lines if you want to auto-run after install
-; Filename: "{app}\ipfs.exe"; Description: "Run IPFS"; Flags: nowait postinstall skipifsilent
-; Filename: "{app}\file-processor.exe"; Description: "Run File Processor"; Flags: nowait postinstall skipifsilent
-; Filename: "{app}\HealthSharer.exe"; Description: "Run HealthSharer"; Flags: nowait postinstall skipifsilent
+
+
+[UninstallDelete]
+Type: filesanddirs; Name: "{app}"
+
+
+
+[Registry]
+; Remove registry keys on uninstall
+Root: HKCU; Subkey: "Environment"; ValueType: none; ValueName: "ASPNETCORE_ENVIRONMENT"; Flags: deletevalue uninsdeletevalue
+Root: HKCU; Subkey: "Environment"; ValueType: none; ValueName: "MessageQueue_Username"; Flags: deletevalue uninsdeletevalue
+Root: HKCU; Subkey: "Environment"; ValueType: none; ValueName: "MessageQueue_Password"; Flags: deletevalue uninsdeletevalue
