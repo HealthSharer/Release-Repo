@@ -22,11 +22,11 @@ end;
 ; Main Electron app
 Source: "release-build\webapp\*"; DestDir: "{app}\webapp"; Flags: ignoreversion recursesubdirs; 
 ; File Processor
-Source: "release-build\fileprocessor\*"; DestDir: "{app}\fileprocessor"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb *.log"
+Source: "release-build\desktopBuild\fileprocessor\*"; DestDir: "{app}\fileprocessor"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb *.log"
 ; IPFS
 Source: "release-build\ipfsnode\*"; DestDir: "{app}\ipfsnode"; Flags: ignoreversion
 ; Supervisor processor
-Source: "release-build\publish\*"; DestDir: "{app}"; Flags: ignoreversion
+Source: "release-build\desktopBuild\publish\*"; DestDir: "{app}"; Flags: ignoreversion
 
 
 
