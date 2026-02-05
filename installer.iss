@@ -22,7 +22,7 @@ end;
 ; Main Electron app
 Source: "release-build\webapp\*"; DestDir: "{app}\webapp"; Flags: ignoreversion recursesubdirs; Excludes: "node_modules\* .env* *.map"
 ; File Processor
-Source: "release-build\fileprocessor\*"; DestDir: "{app}\fileprocessor"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb *.log"
+Source: "release-build\fileprocessor\publish\*"; DestDir: "{app}\fileprocessor"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb *.log"
 ; IPFS
 Source: "release-build\ipfsnode\ipfs.exe"; DestDir: "{app}\ipfsnode"; Flags: ignoreversion
 ; Batch file to run all apps at once
@@ -35,7 +35,7 @@ Source: "run-all.bat"; DestDir: "{app}"; Flags: ignoreversion
 Filename: "{app}\ipfsnode\ipfs.exe"; Parameters: "bootstrap rm --all"; Flags: runhidden
 
 ; Add new IPFS bootstrap address
-Filename: "{app}\ipfsnode\ipfs.exe"; Parameters: "bootstrap add /ip4/82.24.183.42/tcp/4001/p2p/12D3KooWC1kQN58S9LM8o4GjVZbs3FTZpR4Vt7tf9P6tyCuAyzSB"; Flags: runhidden
+Filename: "{app}\ipfsnode\ipfs.exe"; Parameters: "bootstrap add /ip4/healthsharer.live/tcp/4001/p2p/12D3KooWC1kQN58S9LM8o4GjVZbs3FTZpR4Vt7tf9P6tyCuAyzSB"; Flags: runhidden
 
 
 
@@ -60,7 +60,7 @@ Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "MessageQueue_P
 
 
 [UninstallDelete]
-Type: filesanddirs; Name: "{app}"
+Type: filesandordirs; Name: "{app}"
 
 
 
