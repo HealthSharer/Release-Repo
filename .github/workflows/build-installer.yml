@@ -56,7 +56,7 @@ jobs:
 
       - name: Install Inno Setup
         run: |
-          $installerUrl = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe"
+          $installerUrl = "https://files.jrsoftware.org/is/6/innosetup-6.4.3.exe"
           $installerPath = "innosetup-installer.exe"
           Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
           Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
