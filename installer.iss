@@ -26,7 +26,7 @@ Source: "release-build\fileprocessor\*"; DestDir: "{app}\fileprocessor"; Flags: 
 ; IPFS
 Source: "release-build\ipfsnode\*"; DestDir: "{app}\ipfsnode"; Flags: ignoreversion
 ; Supervisor processor
-Source: "*.*"; DestDir: "{app}"; Flags: ignoreversion
+Source: "release-build\publish\*"; DestDir: "{app}"; Flags: ignoreversion
 
 
 
