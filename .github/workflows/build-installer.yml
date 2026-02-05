@@ -46,7 +46,7 @@ jobs:
       - name: Download IPFS
         run: |
           New-Item -Path "release-build/ipfsnode" -ItemType Directory -Force
-          $ipfsUrl = "https://dist.ipfs.tech/kubo/v0.24.0/kubo_v0.24.0_windows-amd64.zip"
+          $ipfsUrl = "https://dist.ipfs.tech/kubo/v0.39.0/kubo_v0.39.0_windows-amd64.zip"
           $ipfsPath = "release-build/ipfsnode/ipfs.zip"
           Invoke-WebRequest -Uri $ipfsUrl -OutFile $ipfsPath
           Expand-Archive -Path $ipfsPath -DestinationPath "release-build/ipfsnode" -Force
