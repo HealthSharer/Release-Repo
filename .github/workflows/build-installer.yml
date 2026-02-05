@@ -20,11 +20,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Create release-build directory
+        run: mkdir release-build
+
       - name: Download latest webapp release zip
         run: |
-          $webappUrl = "https://github.com/HealthSharer/AddOn-Repo/releases/latest/download/webapp.zip"
-          $webappZip = "release-build/webapp.zip"
-          Invoke-WebRequest -Uri $webappUrl -OutFile $webappZip
+          pwsh downloadrelease.ps1 -credentials ${{ secrets.INSTALLER_REPO_TOKEN }} -repo "HealthSharer/AddOn-Repo" -file "webapp.zip"
+          Move-Item -Path "webapp.zip" -Destination "release-build/webapp.zip"
 
       - name: Extract webapp zip
         run: |
@@ -33,9 +35,8 @@ jobs:
 
       - name: Download latest fileprocessor release zip
         run: |
-          $fpUrl = "https://github.com/HealthSharer/Core-Repo/releases/latest/download/fileprocessor.zip"
-          $fpZip = "release-build/fileprocessor.zip"
-          Invoke-WebRequest -Uri $fpUrl -OutFile $fpZip
+          pwsh downloadrelease.ps1 -credentials ${{ secrets.INSTALLER_REPO_TOKEN }} -repo "HealthSharer/Core-Repo" -file "fileprocessor.zip"
+          Move-Item -Path "fileprocessor.zip" -Destination "release-build/fileprocessor.zip"
 
       - name: Extract fileprocessor zip
         run: |
