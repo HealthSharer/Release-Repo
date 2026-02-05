@@ -20,11 +20,11 @@ end;
 
 [Files]
 ; Main Electron app
-Source: "release-build\webapp\*"; DestDir: "{app}\webapp"; Flags: ignoreversion recursesubdirs; Excludes: "node_modules\* .env* *.map"
+Source: "release-build\webapp\*"; DestDir: "{app}\webapp"; Flags: ignoreversion recursesubdirs; 
 ; File Processor
 Source: "release-build\fileprocessor\publish\*"; DestDir: "{app}\fileprocessor"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb *.log"
 ; IPFS
-Source: "release-build\ipfsnode\ipfs.exe"; DestDir: "{app}\ipfsnode"; Flags: ignoreversion
+Source: "release-build\ipfsnode\*"; DestDir: "{app}\ipfsnode"; Flags: ignoreversion
 ; Batch file to run all apps at once
 Source: "run-all.bat"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -35,7 +35,7 @@ Source: "run-all.bat"; DestDir: "{app}"; Flags: ignoreversion
 Filename: "{app}\ipfsnode\ipfs.exe"; Parameters: "bootstrap rm --all"; Flags: runhidden
 
 ; Add new IPFS bootstrap address
-Filename: "{app}\ipfsnode\ipfs.exe"; Parameters: "bootstrap add /ip4/healthsharer.live/tcp/4001/p2p/12D3KooWC1kQN58S9LM8o4GjVZbs3FTZpR4Vt7tf9P6tyCuAyzSB"; Flags: runhidden
+Filename: "{app}\ipfsnode\ipfs.exe"; Parameters: "bootstrap add /ip4/healthsharer.live/tcp/4001/p2p/12D3KooWEC7MkH8dHyALpkU4HaeLc8AdLyns7vS1faoTrzVvWEon"; Flags: runhidden
 
 
 
