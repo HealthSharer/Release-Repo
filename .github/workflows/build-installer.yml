@@ -33,15 +33,15 @@ jobs:
           Expand-Archive -Path "release-build/webapp.zip" -DestinationPath "release-build/webapp" -Force
           Remove-Item "release-build/webapp.zip" -Force
 
-      - name: Download latest fileprocessor release zip
+      - name: Download latest desktop release zip
         run: |
-          pwsh downloadrelease.ps1 -credentials ${{ secrets.INSTALLER_REPO_TOKEN }} -repo "HealthSharer/Core-Repo" -file "fileprocessor.zip"
-          Move-Item -Path "fileprocessor.zip" -Destination "release-build/fileprocessor.zip"
+          pwsh downloadrelease.ps1 -credentials ${{ secrets.INSTALLER_REPO_TOKEN }} -repo "HealthSharer/Core-Repo" -file "desktop.zip"
+          Move-Item -Path "desktopBuild.zip" -Destination "release-build/desktopBuild.zip"
 
-      - name: Extract fileprocessor zip
+      - name: Extract desktop release zip
         run: |
-          Expand-Archive -Path "release-build/fileprocessor.zip" -DestinationPath "release-build/fileprocessor" -Force
-          Remove-Item "release-build/fileprocessor.zip" -Force
+          Expand-Archive -Path "release-build/desktopBuild.zip" -DestinationPath "release-build" -Force
+          Remove-Item "release-build/desktopBuild.zip" -Force
 
       - name: Download IPFS
         run: |
