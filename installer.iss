@@ -22,11 +22,11 @@ end;
 ; Main Electron app
 Source: "release-build\webapp\*"; DestDir: "{app}\webapp"; Flags: ignoreversion recursesubdirs; 
 ; File Processor
-Source: "release-build\fileprocessor\publish\*"; DestDir: "{app}\fileprocessor"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb *.log"
+Source: "release-build\fileprocessor\*"; DestDir: "{app}\fileprocessor"; Flags: ignoreversion recursesubdirs; Excludes: "*.pdb *.log"
 ; IPFS
 Source: "release-build\ipfsnode\*"; DestDir: "{app}\ipfsnode"; Flags: ignoreversion
-; Batch file to run all apps at once
-Source: "run-all.bat"; DestDir: "{app}"; Flags: ignoreversion
+; Supervisor processor
+Source: "*.*"; DestDir: "{app}"; Flags: ignoreversion
 
 
 
