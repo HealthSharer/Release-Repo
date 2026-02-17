@@ -4,8 +4,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: kms_redis
-    ports:
-      - "6379:6379"
     volumes:
       - ./redis_data:/data
     networks:
@@ -467,8 +465,8 @@ services:
   collaboration:
     image: primeng16/healthsharer:collaboration-service
     container_name: collaboration_service
-    ports:
-      - "5070:5070"
+    expose:
+      - "5070"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
@@ -495,8 +493,8 @@ services:
   kms:
     image: primeng16/healthsharer:key-management-service
     container_name: kms_service
-    ports:
-      - "5088:5088"
+    expose:
+      - "5088"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
