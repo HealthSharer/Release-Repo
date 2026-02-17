@@ -352,6 +352,7 @@ services:
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
       - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
       - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+      - ClientSecret=${CLIENT_SECRET}
     networks:
       - healthsharer
     labels:
@@ -413,6 +414,7 @@ services:
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
       - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
       - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+      - ClientSecret=${CLIENT_SECRET}
     networks:
       - healthsharer
     labels:
