@@ -3,7 +3,7 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    container_name: kms_redis
+    container_name: redis
     volumes:
       - ./redis_data:/data
     networks:
@@ -120,17 +120,20 @@ services:
   vault:
     image: hashicorp/vault
     container_name: kms_vault
-    ports:
-      - "8200:8200"
-    environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_TOKEN}
-      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    expose:
+      - "8200"
     volumes:
-      - ./vault/data:/vault/data
-      - ./vault/config:/vault/config
-      - ./vault/policies:/vault/policies
-    command:
-      - "vault server -dev -dev-listen-address=0.0.0.0:8200"
+    - ./vault/data:/vault/data
+    - ./vault/config:/vault/config
+    - ./vault/policies:/vault/policies
+    - ./vault/logs:/vault/logs
+    command: vault server -config=/vault/config/vault.hcl
+    labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.vault.rule=Host(`vault.healthsharer.live`)"
+    - "traefik.http.routers.vault.entrypoints=websecure"
+    - "traefik.http.routers.vault.tls.certresolver=letsencrypt"
+    - "traefik.http.services.vault.loadbalancer.server.port=8200"
     healthcheck:
       test: ["CMD", "sh", "-c", "vault status || exit 0"]  # Modified to not fail if Vault is sealed
       interval: 10s
@@ -148,6 +151,7 @@ services:
     environment:
       VAULT_ADDR: http://vault:8200
     volumes:
+    
       - ./vault/data:/vault/data
       - ./vault/policies:/vault/policies
     command: >
