@@ -143,41 +143,6 @@ services:
       - IPC_LOCK
     networks:
       - healthsharer
-  vault-init:
-    image: hashicorp/vault
-    depends_on:
-      vault:
-        condition: service_healthy
-    environment:
-      VAULT_ADDR: http://vault:8200
-    volumes:
-    
-      - ./vault/data:/vault/data
-      - ./vault/policies:/vault/policies
-    command: >
-      sh -c "
-      set -e;
-      apk add --no-cache jq;
-      if ! vault status | grep -q 'Initialized.*true'; then
-        vault operator init -format=json > /vault/data/init.json;
-      fi;
-      for key in $(jq -r '.unseal_keys_b64[]' /vault/data/init.json); do
-        vault operator unseal $$key;
-      done;
-      export VAULT_TOKEN=$(jq -r '.root_token' /vault/data/init.json);
-      if ! vault secrets list | grep -q 'healthsharer/'; then
-        vault secrets enable -path=healthsharer -version 2 kv-v2;
-        vault kv put healthsharer/secret initial=initial_key
-      fi;
-      for policy in /vault/policies/*.hcl; do
-        if [ -f $$policy ]; then
-          policy_name=$(basename $$policy .hcl);
-          vault policy write $$policy_name $$policy;
-        fi;
-      done;
-      "
-    networks:
-      - healthsharer
   rabbitmq:
     image: rabbitmq:3.13.7-management
     container_name: message_queue
@@ -308,8 +273,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      vault-init:
-        condition: service_started
       ipfs:
         condition: service_started
   permission:
@@ -339,8 +302,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      vault-init:
-        condition: service_started
       ipfs:
         condition: service_started
     restart: unless-stopped
@@ -369,8 +330,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      vault-init:
-        condition: service_started
       ipfs:
         condition: service_started
       hapi-fhir-server:
@@ -399,8 +358,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      vault-init:
-        condition: service_started
       ipfs:
         condition: service_started
     restart: unless-stopped
@@ -431,8 +388,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      vault-init:
-        condition: service_started
       ipfs:
         condition: service_started
     restart: unless-stopped
@@ -460,8 +415,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      vault-init:
-        condition: service_started
       ipfs:
         condition: service_started
       hapi-fhir-server:
@@ -488,8 +441,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      vault-init:
-        condition: service_started
       ipfs:
         condition: service_started
     networks:
@@ -517,8 +468,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      vault-init:
-        condition: service_started
       ipfs:
         condition: service_started
     networks:
