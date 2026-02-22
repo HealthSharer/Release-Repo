@@ -210,6 +210,7 @@ services:
       - "80:80"
       - "443:443"
       - "3080:8080"  # Dashboard port
+      - "5672:5672"  # AMQP port for RabbitMQ
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
