@@ -455,7 +455,8 @@ services:
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
       - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
       - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
-      - Vault_Token=${VAULT_TOKEN}
+      - Vault_Role=${VAULT_ROLE}
+      - Vault_Secret=${VAULT_SECRET}
     labels:
       - "traefik.enable=false"
       - "traefik.http.routers.kms.rule=Host(`api.healthsharer.live`) && PathPrefix(`/kms`)"
