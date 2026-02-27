@@ -174,9 +174,9 @@ services:
   ipfs:
     image: ipfs/kubo:latest
     container_name: ipfs_service     
-    expose:
-      - "4001"
-      - "4001/udp"
+    ports:
+      - "4001:4001"
+      - "4001:4001/udp"
     volumes:
       - "./ipfs/staging:/export"
       - "./ipfs/data:/data/ipfs"
@@ -209,7 +209,6 @@ services:
       - "443:443"
       - "3080:8080"  # Dashboard port
       - "5672:5672"  # AMQP port for RabbitMQ
-      - "4001:4001"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
