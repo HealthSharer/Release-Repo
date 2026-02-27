@@ -174,11 +174,9 @@ services:
   ipfs:
     image: ipfs/kubo:latest
     container_name: ipfs_service     
-    ports:
-      - 4001:4001
-      - 4001:4001/udp
-      - 8080:8080
-      - 5001:5001
+    expose:
+      - "4001"
+      - "4001/udp"
     volumes:
       - "./ipfs/staging:/export"
       - "./ipfs/data:/data/ipfs"
@@ -211,6 +209,7 @@ services:
       - "443:443"
       - "3080:8080"  # Dashboard port
       - "5672:5672"  # AMQP port for RabbitMQ
+      - "4001:4001"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
@@ -477,7 +476,7 @@ services:
   webapp:
     image: primeng16/healthsharer:webapp
     container_name: webapp_service
-    ports:
+    expose:
       - "3000"
     environment:
       - NODE_ENV=production
