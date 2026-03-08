@@ -428,6 +428,9 @@ services:
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
       - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
       - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+      - StreamChat_ApiKey=${STREAM_CHAT_API_KEY}
+      - StreamChat_ApiSecret=${STREAM_CHAT_API_SECRET}
+      - Daily_ApiKey=${DAILY_API_KEY}
     labels:
       - "traefik.enable=false"
       - "traefik.http.routers.collaboration.rule=Host(`api.healthsharer.live`) && PathPrefix(`/collaboration`)"
@@ -470,6 +473,31 @@ services:
         condition: service_healthy
       ipfs:
         condition: service_started
+    networks:
+      - healthsharer
+  payment:
+    image: primeng16/healthsharer:payment-service
+    container_name: payment_service
+    expose:
+      - "5077"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+      - TmnCode=${TMN_CODE}
+      - HashSecret=${HASH_SECRET}
+    labels:
+      - "traefik.enable=false"
+      - "traefik.http.routers.payment.rule=Host(`api.healthsharer.live`) && PathPrefix(`/payments`)"
+      - "traefik.http.services.payment.loadbalancer.server.port=5077"
+      - "traefik.http.routers.payment.middlewares=cors-config"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - healthsharer
   webapp:
