@@ -507,6 +507,7 @@ services:
       - "3000"
     environment:
       - NODE_ENV=production
+      - REACT_APP_STREAM_API_KEY=${STREAM_CHAT_API_KEY}
     networks:
       - healthsharer
     labels:
