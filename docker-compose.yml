@@ -485,8 +485,8 @@ services:
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
       - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
       - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
-      - TmnCode=${TMN_CODE}
-      - HashSecret=${HASH_SECRET}
+      - VNPay:TmnCode=${TMN_CODE}
+      - VNPay:HashSecret=${HASH_SECRET}
     labels:
       - "traefik.enable=false"
       - "traefik.http.routers.payment.rule=Host(`api.healthsharer.live`) && PathPrefix(`/payments`)"
