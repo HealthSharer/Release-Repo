@@ -220,6 +220,13 @@ services:
       - "traefik.http.middlewares.cors-config.headers.accesscontrolalloworiginlist=https://healthsharer.live"
       - "traefik.http.middlewares.cors-config.headers.accesscontrolmaxage=100"
       - "traefik.http.middlewares.cors-config.headers.addvaryheader=true"
+      # Rate limiting middleware
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.period=1m"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=50"
+      - "traefik.http.middlewares.auth-ratelimit.ratelimit.average=20"
+      - "traefik.http.middlewares.auth-ratelimit.ratelimit.period=1m"
+      - "traefik.http.middlewares.auth-ratelimit.ratelimit.burst=10"
       # Dashboard configuration
       - "traefik.http.routers.dashboard.rule=Host(`traefik.healthsharer.live`)"
       - "traefik.http.routers.dashboard.service=api@internal"
@@ -263,7 +270,7 @@ services:
       - "traefik.http.routers.identity.rule=Host(`auth.healthsharer.live`)"
       - "traefik.http.routers.identity.entrypoints=websecure"
       - "traefik.http.routers.identity.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.identity.middlewares=cors-config"
+      - "traefik.http.routers.identity.middlewares=cors-config,auth-ratelimit"
     restart: unless-stopped
     depends_on:
       rabbitmq:
@@ -404,7 +411,7 @@ services:
       - "traefik.http.routers.gateway.rule=Host(`api.healthsharer.live`)"
       - "traefik.http.routers.gateway.entrypoints=websecure"
       - "traefik.http.routers.gateway.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.gateway.middlewares=cors-config"
+      - "traefik.http.routers.gateway.middlewares=cors-config,api-ratelimit"
       - "traefik.http.services.gateway.loadbalancer.server.port=5127"
     restart: unless-stopped
     depends_on:
