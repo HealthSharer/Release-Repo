@@ -322,6 +322,8 @@ services:
       - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
       - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
       - ClientSecret=${CLIENT_SECRET}
+      - Storage:R2:AccessKey=${STORAGE_R2_ACCESS_KEY}
+      - Storage:R2:SecretKey=${STORAGE_R2_SECRET_KEY}
     networks:
       - healthsharer
     labels:
@@ -350,6 +352,8 @@ services:
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
       - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
       - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+      - Storage:R2:AccessKey=${STORAGE_R2_ACCESS_KEY}
+      - Storage:R2:SecretKey=${STORAGE_R2_SECRET_KEY}
     networks:
       - healthsharer
     labels:
