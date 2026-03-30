@@ -486,6 +486,56 @@ services:
         condition: service_started
     networks:
       - healthsharer
+
+  # Orthanc DICOM Server
+  orthanc:
+    image: orthancteam/orthanc:25.8.1
+    container_name: orthanc_dicom_server
+
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+    environment:
+     
+      # Core config
+      ORTHANC__NAME: "HealthSharer DICOM Server"
+      ORTHANC__AUTHENTICATION_ENABLED: "false"
+      # ORTHANC__REGISTERED_USERS: '{"healthsharer":"healthsharer_password"}'
+
+      # DICOMweb
+      ORTHANC__DICOM_WEB__ENABLED: "true"
+      ORTHANC__DICOM_WEB__ROOT: "/dicom-web/"
+      ORTHANC__DICOM_WEB__ENABLE_WADO: "true"
+      ORTHANC__DICOM_WEB__WADO_RS__ENABLE: "true"
+      ORTHANC__DICOM_WEB__QIDO_RS__ENABLE: "true"
+      ORTHANC__DICOM_WEB__STOW_RS__ENABLE: "true"
+
+      # Network
+      ORTHANC__HTTP_PORT: 8042
+      ORTHANC__DICOM_PORT: 4242
+
+      # Storage
+      ORTHANC__STORAGE_DIRECTORY: "/var/lib/orthanc/db"
+
+      # CORS - Enhanced for DICOM web requests
+      ORTHANC__HTTP_HEADERS: '{"Access-Control-Allow-Credentials": "true","Access-Control-Allow-Origin": "*","Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS","Access-Control-Allow-Headers": "Origin, Accept,Authorization,Content-Type,X-Requested-With","Access-Control-Expose-Headers": "Content-Type, Content-Length"}'
+      ORTHANC__HTTP_SERVER__ENABLE_CORS: "true"
+
+      # Security (recommended)
+      ORTHANC__REMOTE_ACCESS_ALLOWED: "true"
+      VERBOSE_ENABLED: "true"
+      #TRACE_ENABLED: "true"
+      HTTP_VERBOSE: "true"
+    ports:
+      - "8042:8042"
+      - "4242:4242"
+
+    volumes:
+      - ./orthanc/data:/var/lib/orthanc/db
+      - ./orthanc/config:/tmp
+    networks:
+      - healthsharer
   payment:
     image: primeng16/healthsharer:payment-service
     container_name: payment_service
