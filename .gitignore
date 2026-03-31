@@ -3,4 +3,6 @@ ipfs/
 vault/data
 database/
 redis_data/
+orthanc/
+letsencrypt/
 .env
