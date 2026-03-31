@@ -268,8 +268,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      ipfs:
-        condition: service_started
   permission:
     image: primeng16/healthsharer:permission-service
     container_name: permission_service
@@ -297,8 +295,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      ipfs:
-        condition: service_started
     restart: unless-stopped
   file:
     image: primeng16/healthsharer:file-service
@@ -327,8 +323,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      ipfs:
-        condition: service_started
       hapi-fhir-server:
         condition: service_healthy
   fileprocessor:
@@ -357,8 +351,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      ipfs:
-        condition: service_started
     restart: unless-stopped
   notification:
     image: primeng16/healthsharer:notification-service
@@ -387,8 +379,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      ipfs:
-        condition: service_started
     restart: unless-stopped
   gateway:
     image: primeng16/healthsharer:gateway
@@ -414,8 +404,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      ipfs:
-        condition: service_started
       hapi-fhir-server:
         condition: service_healthy
   collaboration:
@@ -443,8 +431,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      ipfs:
-        condition: service_started
     networks:
       - healthsharer
   kms:
@@ -471,8 +457,6 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      ipfs:
-        condition: service_started
     networks:
       - healthsharer
 
