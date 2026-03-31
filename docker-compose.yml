@@ -171,17 +171,6 @@ services:
       retries: 5
     networks:
       - healthsharer
-  ipfs:
-    image: ipfs/kubo:latest
-    container_name: ipfs_service     
-    ports:
-      - "4001:4001"
-      - "4001:4001/udp"
-    volumes:
-      - "./ipfs/staging:/export"
-      - "./ipfs/data:/data/ipfs"
-    networks:
-      - healthsharer
   traefik:
     image: traefik:v3.6.7
     container_name: traefik
