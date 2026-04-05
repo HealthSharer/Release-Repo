@@ -556,6 +556,34 @@ services:
       - "traefik.http.routers.webapp.tls.certresolver=letsencrypt"
       - "traefik.http.routers.webapp.priority=100"
     restart: unless-stopped
+
+  mirthconnect:
+    image: nextgenhealthcare/connect
+    platform: linux/amd64
+    environment:
+      - DATABASE=postgres
+      - DATABASE_URL=jdbc:postgresql://postgresql:5432/mirthdb
+      - DATABASE_MAX_CONNECTIONS=20
+      - DATABASE_USERNAME=${POSTGRES_USER}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_MAX_RETRY=2
+      - DATABASE_RETRY_WAIT=10000
+      - KEYSTORE_STOREPASS=${KEYSTORE_STOREPASS}
+      - KEYSTORE_KEYPASS=${KEYSTORE_KEYPASS}
+      - VMOPTIONS=-Xmx512m,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.sql/java.sql=ALL-UNNAMED
+    expose:
+      - 8443
+    volumes:
+      - ./mirthconnect/data:/opt/mirthconnect/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mirthconnect.rule=Host(`mirth.healthsharer.live`)"
+      - "traefik.http.routers.mirthconnect.entrypoints=websecure"
+      - "traefik.http.routers.mirthconnect.tls.certresolver=letsencrypt"
+      - "traefik.http.services.mirthconnect.loadbalancer.server.port=8443"
+      - "traefik.http.routers.mirthconnect.middlewares=cors-config"
+    networks:
+      - healthsharer
 networks:
   healthsharer:
     external: true
