@@ -393,6 +393,9 @@ services:
       - "5127"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
     networks:
       - healthsharer
     labels:
