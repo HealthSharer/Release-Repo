@@ -409,12 +409,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      database:
-        condition: service_healthy
-      vault:
-        condition: service_healthy
-      hapi-fhir-server:
-        condition: service_healthy
   collaboration:
     image: primeng16/healthsharer:collaboration-service
     container_name: collaboration_service
