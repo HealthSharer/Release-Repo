@@ -436,6 +436,30 @@ services:
         condition: service_healthy
     networks:
       - healthsharer
+  assistant:
+    image: primeng16/healthsharer:assistant-service
+    container_name: assistant_service
+    expose:
+      - "5270"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
+      - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
+      - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
+      - ClientSecret=${CLIENT_SECRET}
+    labels:
+      - "traefik.enable=false"
+      - "traefik.http.routers.assistant.rule=Host(`api.healthsharer.live`) && (PathPrefix(`/assistant`) || PathPrefix(`/feedback`))"
+      - "traefik.http.services.assistant.loadbalancer.server.port=5270"
+      - "traefik.http.routers.assistant.middlewares=cors-config"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - healthsharer
   kms:
     image: primeng16/healthsharer:key-management-service
     container_name: kms_service
