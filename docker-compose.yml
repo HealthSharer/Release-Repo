@@ -364,7 +364,7 @@ services:
     expose:
       - "5282"
     volumes:
-      - "./Logs:/app/Logs"
+      - ./Logs:/usr/share/Logs
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
@@ -606,6 +606,67 @@ services:
       - "traefik.http.routers.mirthconnect.middlewares=cors-config"
     networks:
       - healthsharer
+
+  terminology-service:
+    image: primeng16/healthsharer:clinical-terminology-service
+    expose:
+      - "8080"
+    env_file:
+      - .env
+    environment:
+      CTS_SEARCH_URL: ${CTS_SEARCH_URL}
+      CTS_SEARCH_BACKEND: ${CTS_SEARCH_BACKEND}
+      CTS_DATABASE_CONNECTION_STRING: ${CTS_DATABASE_CONNECTION_STRING}
+      CTS_TOKEN_AUTHORITY: ${CTS_TOKEN_AUTHORITY}
+      CTS_RABBITMQ_ENABLED: ${CTS_RABBITMQ_ENABLED}
+      CTS_RABBITMQ_URL: ${CTS_RABBITMQ_URL}
+    volumes:
+      - ./terminologies:/app/terminologies
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - healthsharer
+
+  opensearch:
+    image: opensearchproject/opensearch:2.17.1
+    environment:
+      discovery.type: single-node
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${CTS_SEARCH_PASSWORD}
+      plugins.security.disabled: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms1g -Xmx1g"
+    expose:
+      - "9200"
+    volumes:
+      - ./opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health | grep -E 'green|yellow'"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+    networks:
+      - healthsharer
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.17.1
+    expose:
+      - "5601"
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    networks:
+      - healthsharer
+
 networks:
   healthsharer:
     external: true
