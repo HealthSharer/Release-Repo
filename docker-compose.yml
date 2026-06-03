@@ -581,6 +581,7 @@ services:
 
   mirthconnect:
     image: nextgenhealthcare/connect
+    container_name: mirthconnect
     platform: linux/amd64
     environment:
       - DATABASE=postgres
@@ -609,6 +610,7 @@ services:
 
   terminology-service:
     image: primeng16/healthsharer:clinical-terminology-service
+    container_name: clinical_terminology_service
     expose:
       - "8080"
     env_file:
@@ -637,6 +639,7 @@ services:
 
   opensearch:
     image: opensearchproject/opensearch:2.17.1
+    container_name: opensearch
     environment:
       discovery.type: single-node
       OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${CTS_SEARCH_PASSWORD}
@@ -656,6 +659,7 @@ services:
 
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.17.1
+    container_name: opensearch_dashboard
     expose:
       - "5601"
     environment:
