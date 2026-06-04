@@ -5,4 +5,5 @@ database/
 redis_data/
 orthanc/
 letsencrypt/
+terminologies/
 .env
