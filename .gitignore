@@ -6,4 +6,5 @@ redis_data/
 orthanc/
 letsencrypt/
 terminologies/
+opensearch-data/
 .env
