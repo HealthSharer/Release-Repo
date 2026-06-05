@@ -484,7 +484,6 @@ services:
       - "5088"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-    mem_limit: 256m
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
       - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
       - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
@@ -504,6 +503,7 @@ services:
         condition: service_healthy
     networks:
       - healthsharer
+    mem_limit: 256m
 
   # Orthanc DICOM Server
   orthanc:
