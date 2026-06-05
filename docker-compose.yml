@@ -6,6 +6,7 @@ services:
     container_name: redis
     volumes:
       - ./redis_data:/data
+    mem_limit: 256m
     networks:
       - healthsharer
   database:
@@ -26,13 +27,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 256m
     networks:
       - healthsharer
   postgresql:
     image: postgres:15
-    container_name: firely-postgres
+    container_name: postgres
     environment:
-      POSTGRES_DB: firely
+      POSTGRES_DB: fhir
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST_AUTH_METHOD: trust
@@ -44,11 +46,12 @@ services:
     networks:
       - healthsharer
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d firely"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fhir"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+    mem_limit: 256m
 
   hapi-fhir-server:
     image: hapiproject/hapi:latest
@@ -58,7 +61,7 @@ services:
         condition: service_healthy
     environment:
       # Database configuration
-      spring.datasource.url: "jdbc:postgresql://postgresql:5432/firely"
+      spring.datasource.url: "jdbc:postgresql://postgresql:5432/fhir"
       spring.datasource.username: "${POSTGRES_USER}"
       spring.datasource.password: "${POSTGRES_PASSWORD}"
       spring.datasource.driverClassName: "org.postgresql.Driver"
@@ -98,7 +101,7 @@ services:
       
       # Memory settings
       JAVA_OPTS: "-Xmx2g -Xms1g"
-      
+    mem_limit: 512m
     expose:
       - "8080"
     networks:
@@ -129,7 +132,7 @@ services:
     - ./vault/logs:/vault/logs
     command: vault server -config=/vault/config/vault.hcl
     labels:
-    - "traefik.enable=true"
+    - "traefik.enable=false"
     - "traefik.http.routers.vault.rule=Host(`vault.healthsharer.live`)"
     - "traefik.http.routers.vault.entrypoints=websecure"
     - "traefik.http.routers.vault.tls.certresolver=letsencrypt"
@@ -143,6 +146,8 @@ services:
       - IPC_LOCK
     networks:
       - healthsharer
+    mem_limit: 256m
+
   rabbitmq:
     image: rabbitmq:3.13.7-management
     container_name: message_queue
@@ -152,6 +157,7 @@ services:
     volumes:
       - ./rabbitmq/data/:/var/lib/rabbitmq/
       - ./rabbitmq/log/:/var/log/rabbitmq/
+    mem_limit: 256m
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.rabbitmq.rule=Host(`messagequeue.healthsharer.live`)"
@@ -229,6 +235,8 @@ services:
       - "traefik.http.middlewares.security-headers.headers.permissionsPolicy=camera=(), microphone=(), geolocation=()"
     networks:
       - healthsharer
+    mem_limit: 256m
+
   watchtower:
     image: nickfedor/watchtower:latest
     container_name: watchtower
@@ -238,6 +246,7 @@ services:
     restart: unless-stopped
     networks:
       - healthsharer
+    mem_limit: 256m
 
   identity:
     image: primeng16/healthsharer:identity-service
@@ -274,6 +283,7 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
+    mem_limit: 256m
   permission:
     image: primeng16/healthsharer:permission-service
     container_name: permission_service
@@ -302,6 +312,7 @@ services:
       vault:
         condition: service_healthy
     restart: unless-stopped
+    mem_limit: 256m
   file:
     image: primeng16/healthsharer:file-service
     container_name: file_service
@@ -331,6 +342,8 @@ services:
         condition: service_healthy
       hapi-fhir-server:
         condition: service_healthy
+    mem_limit: 256m
+
   fileprocessor:
     image: primeng16/healthsharer:file-process-service
     container_name: file_process_service
@@ -345,6 +358,7 @@ services:
       - Storage:R2:SecretKey=${STORAGE_R2_SECRET_KEY}
     networks:
       - healthsharer
+    mem_limit: 256m
     labels:
       - "traefik.enable=false"
       - "traefik.http.routers.fileprocessor.rule=Host(`api.healthsharer.live`) && PathPrefix(`/fileprocessor`)"
@@ -386,6 +400,7 @@ services:
       vault:
         condition: service_healthy
     restart: unless-stopped
+    mem_limit: 256m
   gateway:
     image: primeng16/healthsharer:gateway
     container_name: gateway_service
@@ -409,6 +424,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    mem_limit: 256m
   collaboration:
     image: primeng16/healthsharer:collaboration-service
     container_name: collaboration_service
@@ -427,6 +443,7 @@ services:
       - "traefik.http.routers.collaboration.rule=Host(`api.healthsharer.live`) && PathPrefix(`/collaboration`)"
       - "traefik.http.services.collaboration.loadbalancer.server.port=5070"
       - "traefik.http.routers.collaboration.middlewares=cors-config"
+    mem_limit: 256m
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -467,6 +484,7 @@ services:
       - "5088"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+    mem_limit: 256m
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
       - MessageQueue_Username=${MESSAGE_QUEUE_USERNAME}
       - MessageQueue_Password=${MESSAGE_QUEUE_PASSWORD}
@@ -491,6 +509,7 @@ services:
   orthanc:
     image: orthancteam/orthanc:25.8.1
     container_name: orthanc_dicom_server
+    mem_limit: 512m
 
     depends_on:
       postgresql:
@@ -541,6 +560,7 @@ services:
     container_name: payment_service
     expose:
       - "5077"
+    mem_limit: 256m
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
@@ -578,11 +598,13 @@ services:
       - "traefik.http.routers.webapp.tls.certresolver=letsencrypt"
       - "traefik.http.routers.webapp.priority=100"
     restart: unless-stopped
-
+    mem_limit: 256m
+    
   mirthconnect:
     image: nextgenhealthcare/connect
     container_name: mirthconnect
     platform: linux/amd64
+    mem_limit: 512m
     environment:
       - DATABASE=postgres
       - DATABASE_URL=jdbc:postgresql://postgresql:5432/mirthdb
@@ -599,7 +621,7 @@ services:
     volumes:
       - ./mirthconnect/data:/opt/mirthconnect/data
     labels:
-      - "traefik.enable=true"
+      - "traefik.enable=false"
       - "traefik.http.routers.mirthconnect.rule=Host(`mirth.healthsharer.live`)"
       - "traefik.http.routers.mirthconnect.entrypoints=websecure"
       - "traefik.http.routers.mirthconnect.tls.certresolver=letsencrypt"
@@ -634,6 +656,21 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
+    
+    mem_limit: 3g
+
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.terminology.rule=Host(`api.healthsharer.live`) && PathPrefix(`/terminology`)"
+      - "traefik.http.routers.terminology.entrypoints=websecure"
+      - "traefik.http.routers.terminology.tls=true"
+
+      - "traefik.http.services.terminology.loadbalancer.server.port=8080"
+
+      - "traefik.http.middlewares.terminology-strip.stripprefix.prefixes=/terminology"
+      - "traefik.http.routers.terminology.middlewares=terminology-strip,cors-config"
+
     networks:
       - healthsharer
 
@@ -654,6 +691,11 @@ services:
       interval: 20s
       timeout: 5s
       retries: 10
+    ulimits:
+    nofile:
+      soft: 65536
+      hard: 65536
+    mem_limit: 2g
     networks:
       - healthsharer
 
@@ -668,6 +710,15 @@ services:
     depends_on:
       opensearch:
         condition: service_healthy
+    labels:
+    - "traefik.enable=true"
+
+    - "traefik.http.routers.opensearch-dashboard.rule=Host(`search.healthsharer.live`)"
+    - "traefik.http.routers.opensearch-dashboard.entrypoints=websecure"
+    - "traefik.http.routers.opensearch-dashboard.tls=true"
+
+    - "traefik.http.services.opensearch-dashboard.loadbalancer.server.port=5601"
+
     networks:
       - healthsharer
 
