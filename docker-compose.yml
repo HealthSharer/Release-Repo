@@ -388,7 +388,7 @@ services:
     networks:
       - healthsharer
     labels:
-      - "traefik.enable=true"
+      - "traefik.enable=false"
       - "traefik.http.routers.notification.rule=Host(`api.healthsharer.live`) && (PathPrefix(`/notification`) || PathPrefix(`/auditlog`))"
       - "traefik.http.services.notification.loadbalancer.server.port=5282"
       - "traefik.http.routers.notification.middlewares=cors-config"
