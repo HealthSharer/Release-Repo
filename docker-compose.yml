@@ -378,7 +378,7 @@ services:
     expose:
       - "5282"
     volumes:
-      - ./Logs:/usr/share/Logs
+      - ./Logs:/var/logs
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - MessageQueue_HostName=${MESSAGE_QUEUE_HOSTNAME}
