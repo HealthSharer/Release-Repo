@@ -211,8 +211,9 @@ services:
       - "traefik.enable=true"
       # Global CORS middleware
       - "traefik.http.middlewares.cors-config.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST"
-      - "traefik.http.middlewares.cors-config.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolallowheaders=Authorization,Content-Type,X-Requested-With,Accept,Origin,x-signalr-user-agent"
       - "traefik.http.middlewares.cors-config.headers.accesscontrolalloworiginlist=https://healthsharer.live"
+      - "traefik.http.middlewares.cors-config.headers.accesscontrolallowcredentials=true"
       - "traefik.http.middlewares.cors-config.headers.accesscontrolmaxage=100"
       - "traefik.http.middlewares.cors-config.headers.addvaryheader=true"
       # Rate limiting middleware
